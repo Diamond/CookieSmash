@@ -6,8 +6,21 @@ public class CookieScript : MonoBehaviour {
 	public List<Sprite> sprites;
 	public List<Sprite> highlightSprites;
 
+	public Transform feelerLeft;
+	public Transform feelerRight;
+	public Transform feelerUp;
+	public Transform feelerDown;
+
 	public int locationX = 0;
 	public int locationY = 0;
+
+	public int swapToX = 0;
+	public int swapToY = 0;
+
+	public GameObject leftCookie;
+	public GameObject rightCookie;
+	public GameObject upCookie;
+	public GameObject downCookie;
 
 	private int  _cookieChoice = 0;
 	private bool _selected = false;
@@ -81,15 +94,17 @@ public class CookieScript : MonoBehaviour {
 	void DoSwap(int x, int y) {
 		_gcScript.swapInProgress = true;
 		GameObject other = _gcScript.GetObjAt(x, y);
+		other.GetComponent<CookieScript>().swapToX = locationX;
+		other.GetComponent<CookieScript>().swapToY = locationY;
+
+		swapToX = x;
+		swapToY = y;
 
 		SwapTo (other, true);
 
 		other.GetComponent<CookieScript>().SwapTo (this.gameObject, false);
 		other.GetComponent<CookieScript>().locationX = locationX;
 		other.GetComponent<CookieScript>().locationY = locationY;
-
-		locationX = x;
-		locationY = y;
 	}
 	
 	public void SwapTo(GameObject other, bool onTop=true) {
@@ -99,10 +114,18 @@ public class CookieScript : MonoBehaviour {
 		StartCoroutine(SwapPositions(transform.position, other.transform.position));
 	}
 
-	IEnumerator SwapPositions(Vector3 from, Vector3 target) {
+	IEnumerator SwapPositions(Vector3 from, Vector3 target, bool forceSwap=false, float speedMod=1.0f) {
 		while (Vector3.Distance(transform.position, target) >= 0.01f) {
-			transform.position = Vector3.Lerp(transform.position, target, Time.deltaTime * SMOOTHING);
+			transform.position = Vector3.Lerp(transform.position, target, Time.deltaTime * SMOOTHING * speedMod);
 			yield return null;
+		}
+
+		if (!IsValidSwap() && !forceSwap) {
+			Debug.Log ("Invalid swap detected");
+			StopSwap();
+		} else {
+			locationX = swapToX;
+			locationY = swapToY;
 		}
 		this.transform.position = new Vector3(transform.position.x, transform.position.y, 0.0f);
 		Selected = false;
@@ -135,5 +158,93 @@ public class CookieScript : MonoBehaviour {
 		if (_gcScript) {
 			_gcScript.swapInProgress = false;
 		}
+	}
+
+	public bool IsValidSwap() {
+		int total = 0;
+		total += MatchesToLeft();
+		total += MatchesToRight();
+		total += MatchesToUp();
+		total += MatchesToDown();
+		if (total >= 3) {
+			return true;
+		}
+		return false;
+	}
+
+	public int MatchesToLeft() {
+		int matches = 0;
+		GameObject wanderer = this.gameObject;
+		for (int x = locationX; x > 0; x--) {
+			if (this.leftCookie) {
+				GameObject left = wanderer.GetComponent<CookieScript>().leftCookie;
+				if (left.GetComponent<CookieScript>().Name() == Name ()) {
+					matches++;
+					wanderer = left;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		return matches;
+	}
+
+	public int MatchesToRight() {
+		int matches = 0;
+		GameObject wanderer = this.gameObject;
+		for (int x = locationX; x < 8; x++) {
+			if (this.rightCookie) {
+				GameObject right = wanderer.GetComponent<CookieScript>().rightCookie;
+				if (right.GetComponent<CookieScript>().Name() == Name ()) {
+					matches++;
+					wanderer = right;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		return matches;
+	}
+
+	public int MatchesToUp() {
+		int matches = 0;
+		GameObject wanderer = this.gameObject;
+		for (int y = locationY; y < 8; y++) {
+			if (this.rightCookie) {
+				GameObject up = wanderer.GetComponent<CookieScript>().upCookie;
+				if (up.GetComponent<CookieScript>().Name() == Name ()) {
+					matches++;
+					wanderer = up;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		return matches;
+	}
+
+	public int MatchesToDown() {
+		int matches = 0;
+		GameObject wanderer = this.gameObject;
+		for (int y = locationY; y > 0; y--) {
+			if (this.rightCookie) {
+				GameObject down = wanderer.GetComponent<CookieScript>().downCookie;
+				if (down.GetComponent<CookieScript>().Name() == Name ()) {
+					matches++;
+					wanderer = down;
+				} else {
+					break;
+				}
+			} else {
+				break;
+			}
+		}
+		return matches;
 	}
 }
